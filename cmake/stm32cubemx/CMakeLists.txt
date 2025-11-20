@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
+
 # STM32CubeMX generated symbols (macros)
 set(MX_Defines_Syms 
 	USE_HAL_DRIVER 
 	STM32F303xC
+    ARM_MATH_CM4
     $<$<CONFIG:Debug>:DEBUG>
 )
 
@@ -64,7 +66,6 @@ set(STM32_Drivers_Src
 
 # Drivers Midllewares
 
-
 set(USB_Device_Library_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
@@ -76,22 +77,36 @@ set(USB_Device_Library_Src
 set(MX_LINK_DIRS
 
 )
+
 # Project static libraries
 set(MX_LINK_LIBS 
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    USB_Device_Library	
+    USB_Device_Library
+    m
 )
+
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)
 target_include_directories(stm32cubemx INTERFACE ${MX_Include_Dirs})
 target_compile_definitions(stm32cubemx INTERFACE ${MX_Defines_Syms})
 
+# Add floating-point compiler and linker flags
+target_compile_options(stm32cubemx INTERFACE
+    -mfloat-abi=hard
+    -mfpu=fpv4-sp-d16
+)
+
+target_link_options(stm32cubemx INTERFACE
+    -mfloat-abi=hard
+    -mfpu=fpv4-sp-d16
+    -u _printf_float
+)
+
 # Create STM32_Drivers static library
 add_library(STM32_Drivers OBJECT)
 target_sources(STM32_Drivers PRIVATE ${STM32_Drivers_Src})
 target_link_libraries(STM32_Drivers PUBLIC stm32cubemx)
-
 
 # Create USB_Device_Library static library
 add_library(USB_Device_Library OBJECT)
